@@ -1,0 +1,8 @@
+aiogram==2.25.1
+aiohttp
+requests
+psycopg2-binary==2.9.11
+python-dateutil
+asyncpg
+python-dateutil
+python-dotenv

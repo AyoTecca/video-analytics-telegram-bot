@@ -1,39 +1,106 @@
 # Video Analytics Telegram Bot
 
-Telegram-бот для аналитики по видео на основе запросов на естественном языке.
+Telegram-бот для аналитики по видео. Бот принимает вопросы на русском языке, преобразует их в SQL и возвращает числовой ответ.
+
+---
+
+## Требования
+
+- Docker
+- Docker Compose
+- Telegram Bot Token
+
+---
+
+## Быстрый запуск (рекомендуется)
+
+### 1. Клонировать репозиторий
+
+```bash
+git clone https://github.com/AyoTecca/video-analytics-telegram-bot.git
+cd video-analytics-telegram-bot
+```
+
+### 2. Настроить переменные окружения
+
+Создайте файл `.env` на основе примера:
+
+```bash
+cp .env.example .env
+# или на Windows PowerShell:
+# copy .env.example .env
+```
+
+Укажите в `.env` значение токена бота:
+
+- `TELEGRAM_BOT_TOKEN` (или `TELEGRAM_TOKEN`, если вы используете это имя в проекте)
+
+При необходимости измените остальные значения (Postgres, Ollama и т.д.).
+
+### 3. Запустить сервисы
+
+```bash
+docker-compose up -d --build
+```
+
+Будут запущены:
+
+- PostgreSQL
+- Ollama (LLM)
+- Telegram-бот
+
+### 4. Применить миграции БД
+
+```bash
+docker exec -it analytics_db psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /app/migrations.sql
+```
+
+
+### 5. Загрузить данные
+
+```bash
+docker exec -it analytics_bot python load_data.py data/videos.json
+```
+
+### 6. Проверить, что бот работает
+
+Откройте Telegram и напишите боту, например:
+
+```
+Сколько всего видео есть в системе?
+```
+
+Ответ должен быть одним числом.
+
+---
 
 ## Архитектура
 
-- PostgreSQL — хранение данных
-- Telegram Bot (aiogram)
-- LLM (Ollama, модель llama3.1) - преобразование текста в SQL
-- Один запрос → один SQL → одно число
+- PostgreSQL — хранение статистики
+- Telegram bot (`aiogram`) — приём и отправка сообщений
+- LLM (Ollama) — преобразование текста → SQL
 
-## Структура данных
+Принцип: один запрос → один числовой ответ. Контекст диалога не хранится.
 
-- videos - итоговая статистика по видео
-- video_snapshots - почасовые изменения (delta)
+## LLM и правила генерации SQL
 
-## Запуск проекта (Docker)
+Описание схемы данных и правил генерации SQL находится в файле `llm_prompt.txt`.
 
-1. Создать `.env` на основе `.env.example`
-2. Запустить сервисы:
+LLM получает:
 
-```docker-compose up -d```
+- описание таблиц
+- правила выбора метрик
+- ограничения (только SQL, без вспомогательного текста)
 
-3. Загрузить данные:
+---
 
-```docker exec -it analytics_bot python load_data.py data/videos.json```
+## Структура проекта
 
-4. Бот доступен в Telegram
+- `bot.py` — Telegram-бот
+- `load_data.py` — загрузка JSON в БД
+- `migrations.sql` — схема PostgreSQL
+- `llm/`, `llm_prompt.txt` — логика и подсказки для LLM
+- `docker-compose.yml`, `Dockerfile` — Docker-конфигурация
 
-## Принцип работы
+---
 
-1. Пользователь задаёт вопрос на русском языке
-2. LLM генерирует SQL-запрос на основе описания схемы
-3. SQL выполняется в PostgreSQL
-4. Бот возвращает одно числовое значение
-
-## LLM
-Используется локально развернутая модель llama3.1 через Ollama.
-Схема данных и правила интерпретации описаны в llm_prompt.txt.
