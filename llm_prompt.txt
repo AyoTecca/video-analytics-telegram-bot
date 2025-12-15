@@ -79,3 +79,30 @@ SQL:
 SELECT COUNT(*)
 FROM video_snapshots
 WHERE delta_views_count < 0;
+
+14. Запросы с временным интервалом (часы, минуты)
+-> фильтрация ВСЕГДА по video_snapshots.created_at
+-> использовать >= начало и < конец
+
+15. Запросы по креатору + замеры
+-> ВСЕГДА JOIN video_snapshots с videos
+-> video_snapshots.video_id = videos.id
+-> фильтр по videos.creator_id
+
+16. "Суммарно выросли просмотры"
+-> SUM(delta_views_count)
+-> НЕ добавлять условия delta_views_count > 0, если явно не сказано
+
+Пример:
+
+Вопрос:
+"На сколько просмотров суммарно выросли все видео креатора X
+в промежутке с 10:00 до 15:00 28 ноября 2025 года?"
+
+SQL:
+SELECT SUM(vs.delta_views_count)
+FROM video_snapshots vs
+JOIN videos v ON vs.video_id = v.id
+WHERE v.creator_id = 'X'
+  AND vs.created_at >= '2025-11-28 10:00:00'
+  AND vs.created_at <  '2025-11-28 15:00:00';
